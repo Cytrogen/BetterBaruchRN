@@ -9,7 +9,7 @@ BetterBaruch-RN is a React Native application designed to help Baruch College st
 #### Android
 
 1. Go to the [Releases](https://github.com/Cytrogen/BetterBaruchRN/releases) page
-2. Download the latest `app-release.apk` file
+2. Download the latest `app-release-signed.apk` file
 3. Open the APK on your Android device to install
 
 #### iOS
