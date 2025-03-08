@@ -7,6 +7,7 @@ const useClubStore = create((set, get) => ({
   error: null,
   expandedClub: null,
   clubDetails: {},
+  pendingClubs: [],
 
   // 加载社团列表
   loadClubs: async () => {
