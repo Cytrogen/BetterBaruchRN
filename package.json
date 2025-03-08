@@ -1,6 +1,6 @@
 {
-  "name": "MyBaruchApp",
-  "version": "0.0.1",
+  "name": "rally-nexus",
+  "version": "0.0.2",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -10,10 +10,18 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-navigation/bottom-tabs": "^7.2.1",
+    "@react-navigation/native": "^7.0.15",
+    "@react-navigation/native-stack": "^7.2.1",
     "axios": "^1.8.1",
+    "html-entities": "^2.5.2",
     "react": "19.0.0",
     "react-native": "0.78.0",
     "react-native-gesture-handler": "^2.24.0",
+    "react-native-rss-parser": "^1.5.1",
+    "react-native-safe-area-context": "^5.3.0",
+    "react-native-screens": "^4.9.1",
     "react-native-vector-icons": "^10.2.0",
     "react-native-webview": "^13.13.2",
     "react-navigation": "^5.0.0",
