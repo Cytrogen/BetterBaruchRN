@@ -1,10 +1,16 @@
 import React, { createContext, useContext } from 'react';
 import { useColorScheme, StatusBar, View } from 'react-native';
-import ClubListScreen from './src/screens/ClubListScreen';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import MainScreen from './src/screens/MainScreen';
+import RSSDetailScreen from './src/screens/RSSDetailScreen';
+import EventDetailScreen from './src/screens/EventDetailScreen';
 
-export const ThemeContext = createContext();
+export const ThemeContext = createContext(undefined);
 
 export const useTheme = () => useContext(ThemeContext);
+
+const Stack = createNativeStackNavigator();
 
 const App = () => {
   const colorScheme = useColorScheme();
@@ -28,7 +34,30 @@ const App = () => {
     <ThemeContext.Provider value={theme}>
       <View style={{ backgroundColor: theme.colors.background, flex: 1 }}>
         <StatusBar barStyle={theme.colors.statusBar} backgroundColor={theme.colors.background} />
-        <ClubListScreen />
+        <NavigationContainer>
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: theme.colors.background },
+            }}
+           id="0">
+            <Stack.Screen
+              name="Main"
+              component={MainScreen}
+              options={{ title: 'Rally Nexus' }}
+            />
+            <Stack.Screen
+              name="RSSDetail"
+              component={RSSDetailScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="EventDetail"
+              component={EventDetailScreen}
+              options={{ headerShown: false }}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
       </View>
     </ThemeContext.Provider>
   );
