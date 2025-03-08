@@ -1,11 +1,12 @@
-import axios from 'axios';
+import {createDebugAxios} from './networkDebug';
+import * as rssParser from 'react-native-rss-parser';
 
-const BASE_URL = 'https://baruch.campuslabs.com/engage/api/discovery/search/organizations';
-const ORGANIZATION_URL = 'https://baruch.campuslabs.com/engage/organization/';
+const debugAxios = createDebugAxios();
 
 export const fetchClubs = async (skip = 0, top = 20) => {
   try {
-    const response = await axios.get(BASE_URL, {
+    const clubURL = 'https://baruch.campuslabs.com/engage/api/discovery/search/organizations';
+    const response = await debugAxios.get(clubURL, {
       params: {
         'orderBy[0]': 'UpperName asc',
         top,
@@ -61,5 +62,6 @@ export const getClubLogoUrl = (profilePicture, size = 'small-sq') => {
 };
 
 export const getClubPageUrl = websiteKey => {
-  return `${ORGANIZATION_URL}${websiteKey}`;
+  const organizationURL = 'https://baruch.campuslabs.com/engage/organization/';
+  return `${organizationURL}${websiteKey}`;
 };
