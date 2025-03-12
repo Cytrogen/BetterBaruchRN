@@ -3,7 +3,6 @@ import {
   View,
   Text,
   FlatList,
-  ActivityIndicator,
   RefreshControl,
   SafeAreaView,
   TouchableOpacity,
@@ -14,7 +13,7 @@ import useClubStore from '../store/clubStore';
 import { useTheme } from '../../App';
 
 const ClubListScreen = () => {
-  const { clubs, loading, error, loadClubs, loadMoreClubs } = useClubStore();
+  const { clubs, loading, error, hasMore, loadClubs, loadMoreClubs } = useClubStore();
   const theme = useTheme();
 
   const backgroundColor = theme.isDark ? 'bg-gray-900' : 'bg-background';
@@ -22,39 +21,29 @@ const ClubListScreen = () => {
   const secondaryTextColor = theme.isDark ? 'text-gray-300' : 'text-primary';
 
   useEffect(() => {
-    loadClubs().then(r => console.log('初始化加载社团成功'));
+    loadClubs().then(r => console.log('ClubListScreen: 初始化加载社团成功'));
   }, [loadClubs]);
-
-  const renderFooter = () => {
-    if (!loading) { return null; }
-
-    return (
-      <View style={tw`py-4 items-center`}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
-  };
 
   // 渲染社团卡片
   const renderClubCard = ({ item }) => <ClubCard club={ item } />;
 
   // 刷新处理
   const handleRefresh = () => {
-    loadClubs().then(r => console.log('刷新后加载社团成功'));
+    loadClubs().then(r => console.log('ClubListScreen: 刷新后加载社团成功'));
   };
 
   // 加载更多处理
   const handleLoadMore = () => {
-    if (!loading) {
-      loadMoreClubs().then(r => console.log('加载更多后处理更多社团成功'));
+    if (!loading && hasMore) {
+      loadMoreClubs().then(r => console.log('ClubListScreen: 成功加载更多社团'));
     }
   };
 
   return (
     <SafeAreaView style={tw`flex-1 ${backgroundColor}`}>
       <View style={tw`p-4`}>
-        <Text style={tw`text-2xl font-bold ${textColor} mb-1`}>BetterBaruch - RN</Text>
-        <Text style={tw`text-lg ${secondaryTextColor} mb-4`}>Campus Clubs</Text>
+        <Text style={tw`text-2xl font-bold ${textColor} mb-1`}>Campus Clubs</Text>
+        <Text style={tw`text-lg ${secondaryTextColor} mb-4`}>Clubs Navigator</Text>
       </View>
 
       {error ? (
@@ -75,7 +64,6 @@ const ClubListScreen = () => {
           renderItem={renderClubCard}
           keyExtractor={(item) => item.Id}
           contentContainerStyle={tw`px-4 pb-6`}
-          ListFooterComponent={renderFooter}
           refreshControl={
             <RefreshControl
               refreshing={loading && clubs.length === 0}
@@ -84,7 +72,7 @@ const ClubListScreen = () => {
               tintColor={theme.colors.primary}
             />
           }
-          onEndReached={handleLoadMore}
+          onEndReached={hasMore ? handleLoadMore : null}
           onEndReachedThreshold={0.5}
           ListEmptyComponent={
             !loading ? (
