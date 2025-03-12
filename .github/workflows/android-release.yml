@@ -54,11 +54,41 @@ jobs:
           keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
 
+      - name: Extract Changelog
+        id: extract_changelog
+        run: |
+          # Get the version from the tag name (remove 'v' prefix)
+          VERSION=${GITHUB_REF_NAME#v}
+          
+          SECTION_CONTENT=$(awk -v ver="$VERSION" '
+            BEGIN { output=""; found=0; }
+            /^## v'"$VERSION"'/ { found=1; next; }
+            /^## / { if (found) exit; }
+            found { output = output $0 "\n"; }
+            END { print output; }
+          ' CHANGELOG.md)
+          
+          if [ -z "$SECTION_CONTENT" ]; then
+            SECTION_CONTENT=$(awk -v ver="$VERSION" '
+              BEGIN { output=""; found=0; }
+              /^## '"$VERSION"'/ { found=1; next; }
+              /^## / { if (found) exit; }
+              found { output = output $0 "\n"; }
+              END { print output; }
+            ' CHANGELOG.md)
+          fi
+          
+          echo "$SECTION_CONTENT" > changelog_temp.md
+          
+          CHANGELOG_CONTENT=$(cat changelog_temp.md | sed -z 's/%/%25/g' | sed -z 's/\n/%0A/g' | sed -z 's/\r/%0D/g')
+          echo "changelog=$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             android/app/build/outputs/apk/release/app-release-signed.apk
           name: Release ${{ github.ref_name }}
+          body: ${{ steps.extract_changelog.outputs.changelog }}
           draft: false
           prerelease: false
