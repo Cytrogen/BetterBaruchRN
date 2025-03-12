@@ -1,109 +1,43 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, Image, TouchableOpacity, Animated, Linking, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, Image, TouchableOpacity, Animated, Linking, ActivityIndicator, Alert } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import WebScraper from './WebScraper';
-import { getClubLogoUrl, mockFetchClubDetails } from '../services/api';
+import { getClubLogoUrl } from '../services/api';
 import useClubStore from '../store/clubStore';
 import tw from '../styles/tailwind';
 import { useTheme } from '../../App';
 
 const ClubCard = ({ club }) => {
-  const { expandedClub, setExpandedClub, clubDetails, setClubDetails } = useClubStore();
+  const {
+    expandedClub,
+    setExpandedClub,
+    getClubDetails,
+  } = useClubStore();
   const theme = useTheme();
-  const isExpanded = expandedClub === club.Id;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-  const [loading, setLoading] = useState(false);
-  const [scrapeProps, setScrapeProps] = useState(null);
-  const [dataLoadAttempted, setDataLoadAttempted] = useState(false);
-  const [scrapingComplete, setScrapingComplete] = useState(false);
-  const [localDetails, setLocalDetails] = useState(null);
 
+  // 本地UI状态
+  const isExpanded = expandedClub === club.Id;
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  const { clubDetails } = useClubStore();
+  const details = clubDetails[club.Id];
+  const isTemporaryError = details?.temporaryError;
+
+  // 旋转动画
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const rotateInterpolate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+
+  // 样式
   const cardStyle = theme.isDark
     ? (isExpanded ? 'dark-card-expanded' : 'dark-card')
     : (isExpanded ? 'card-expanded' : 'card');
-
   const textColor = theme.isDark ? 'text-white' : 'text-gray-800';
   const secondaryTextColor = theme.isDark ? 'text-gray-400' : 'text-gray-500';
   const contactBgColor = theme.isDark ? 'bg-gray-800' : 'bg-gray-50';
-
-  const loadMockData = useCallback(async () => {
-    try {
-      const mockData = await mockFetchClubDetails(club.WebsiteKey);
-
-      setClubDetails(prevDetails => ({
-        ...prevDetails,
-        [club.Id]: mockData,
-      }));
-
-      return mockData;
-    } catch (error) {
-      console.error('获取模拟数据失败：', error);
-    }
-  }, [club.WebsiteKey, club.Id, setClubDetails]);
-
-  // 先加载模拟数据再尝试获取真实数据
-  useEffect(() => {
-    if (isExpanded && clubDetails[club.Id]) {
-      console.log('展开后检测到club详情:', club.Id, clubDetails[club.Id]);
-    }
-
-    if (isExpanded && !clubDetails[club.Id] && !dataLoadAttempted) {
-      setLoading(true);
-      setDataLoadAttempted(true);
-
-      // 立即加载模拟数据
-      loadMockData().then(() => {
-        console.log('已加载模拟数据，现尝试加载实际数据');
-
-        // 然后尝试加载真实数据
-        try {
-          const scrapePropsObj = {
-            websiteKey: club.WebsiteKey,
-            onDataExtracted: data => {
-              console.log('WebScraper返回数据：', JSON.stringify(data).substring(0, 100) + '...');
-
-              // 检查数据有效性
-              if (data && data.contactInfo) {
-                console.log('更新前的club详情:', clubDetails[club.Id]);
-
-                // 同时更新全局和本地状态
-                setClubDetails(prevDetails => {
-                  const newDetails = {
-                    ...prevDetails,
-                    [club.Id]: data,
-                  };
-
-                  console.log('更新后的club详情:', newDetails[club.Id]);
-                  return newDetails;
-                });
-                setLocalDetails(data);
-
-                console.log('已更新详细信息');
-              } else {
-                console.log('数据无效，结构：', data);
-              }
-              setLoading(false);
-              setScrapingComplete(true);
-            },
-          };
-
-          console.log('设置scrapeProps：', club.WebsiteKey);
-          setScrapeProps(scrapePropsObj);
-        } catch (error) {
-          console.error('加载实际数据失败：', error);
-          setLoading(false);
-        }
-      });
-    }
-  }, [isExpanded, club.Id, clubDetails, club.WebsiteKey, setClubDetails, loadMockData, dataLoadAttempted]);
-
-  // 当卡片折叠时重置尝试状态
-  useEffect(() => {
-    if (!isExpanded) {
-      setDataLoadAttempted(false);
-      setScrapingComplete(false);
-    }
-  }, [isExpanded]);
 
   // 处理展开/折叠动画
   useEffect(() => {
@@ -114,35 +48,83 @@ const ClubCard = ({ club }) => {
     }).start();
   }, [isExpanded, rotateAnim]);
 
-  const rotateInterpolate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '180deg'],
-  });
+  // 当展开时直接获取数据
+  useEffect(() => {
+    // 只在展开且没有数据时加载
+    if (isExpanded && !details && !isLoading) {
+      console.log(`[展开]: ${club.Id}`);
+      loadDetails();
+    }
+  }, [isExpanded, details, isLoading, retryCount]);
 
-  const logoUrl = getClubLogoUrl(club.ProfilePicture);
-  const displayDetails = localDetails || clubDetails[club.Id];
-  console.log('displayDetails检查:', {
-    hasLocalDetails: !!localDetails,
-    hasStoreDetails: !!clubDetails[club.Id],
-    finalDisplay: !!displayDetails,
-  });
+  // 加载详情
+  const loadDetails = async () => {
+    console.log(`[开始加载]: ${club.Id}`);
+    setIsLoading(true);
+    setErrorMsg(null);
 
-  // 处理社交媒体点击
-  const handleSocialMediaPress = (url) => {
-    Linking.canOpenURL(url).then(supported => {
-      if (supported) {
-        Linking.openURL(url);
+    try {
+      await getClubDetails(club.Id);
+
+      // 即使成功获取数据，也要检查是否是临时错误响应
+      if (clubDetails[club.Id]?.temporaryError) {
+        console.log(`[临时错误]: Club ID: ${club.Id}`);
       } else {
-        console.log(`无法打开URL: ${url}`);
+        console.log(`[加载成功]: ${club.Id}`);
       }
+    } catch (err) {
+      console.log(`[加载失败]: ${club.Id}, 错误: ${err.message}`);
+      setErrorMsg(err.message || '网络错误，请稍后再试');
+    } finally {
+      // 确保无论成功还是失败都设置加载状态为false
+      setIsLoading(false);
+    }
+  };
+
+  // 强制重新加载
+  const handleRetry = () => {
+    console.log(`[重试] Club ID: ${club.Id}`);
+    setRetryCount(prev => prev + 1); // 触发useEffect重新执行loadDetails
+  };
+
+  // 获取Logo URL
+  const logoUrl = getClubLogoUrl(club.ProfilePicture);
+
+  // 社交媒体点击处理
+  const handleLinkPress = (type, url) => {
+    if (!url) { return; }
+
+    Linking.openURL(url).catch(err => {
+      console.error(`无法打开链接: ${url}`, err);
+      Alert.alert('错误', '无法打开链接');
     });
   };
 
+  // 渲染临时错误状态
+  const renderTemporaryError = () => (
+    <View style={tw`items-center py-6 px-4`}>
+      <Ionicons
+        name="cloud-offline-outline"
+        size={50}
+        color={theme.isDark ? '#f87171' : '#ef4444'}
+      />
+      <Text style={tw`${textColor} text-lg font-semibold mt-4 text-center`}>
+        数据源暂时不可用
+      </Text>
+      <Text style={tw`${secondaryTextColor} mt-2 text-center mb-4`}>
+        我们暂时无法连接到社团数据源。请稍后再试。
+      </Text>
+      <TouchableOpacity
+        style={tw`mt-2 bg-primary px-5 py-2 rounded-lg`}
+        onPress={handleRetry}
+      >
+        <Text style={tw`text-white font-medium`}>重试</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <View style={tw`${cardStyle} my-1`}>
-      {/* 仅当需要抓取时渲染 */}
-      {scrapeProps && !scrapingComplete && <WebScraper {...scrapeProps} />}
-
       {/* 基本信息区域 */}
       <TouchableOpacity
         onPress={() => setExpandedClub(club.Id)}
@@ -187,51 +169,77 @@ const ClubCard = ({ club }) => {
           <Text style={tw`text-base font-bold mb-2 ${textColor}`}>Club Description</Text>
           <Text style={tw`text-sm ${secondaryTextColor} mb-4`}>{club.Summary || 'No description'}</Text>
 
-          {loading ? (
+          {/* 调试信息 */}
+          {/*{__DEV__ && (*/}
+          {/*  <View style={tw`p-2 mb-2 ${theme.isDark ? 'bg-gray-800' : 'bg-gray-100'} rounded`}>*/}
+          {/*    <Text style={tw`${textColor} text-xs`}>ID: {club.Id}</Text>*/}
+          {/*    <Text style={tw`${textColor} text-xs`}>Loading: {isLoading ? 'Yes' : 'No'}</Text>*/}
+          {/*    <Text style={tw`${textColor} text-xs`}>Has Details: {details ? 'Yes' : 'No'}</Text>*/}
+          {/*    <Text style={tw`${textColor} text-xs`}>Temporary Error: {isTemporaryError ? 'Yes' : 'No'}</Text>*/}
+          {/*    <Text style={tw`${textColor} text-xs`}>Error: {errorMsg || 'None'}</Text>*/}
+          {/*    <Text style={tw`${textColor} text-xs`}>Retry Count: {retryCount}</Text>*/}
+          {/*  </View>*/}
+          {/*)}*/}
+
+          {/* 加载状态 */}
+          {isLoading ? (
             <View style={tw`items-center py-4`}>
               <ActivityIndicator size="small" color={theme.colors.primary} />
               <Text style={tw`${secondaryTextColor} mt-2`}>Loading details...</Text>
             </View>
-          ) : displayDetails ? (
+          ) : isTemporaryError ? (
+            // 临时错误状态
+            renderTemporaryError()
+          ) : errorMsg ? (
+            // 普通错误状态
+            <View style={tw`items-center py-4`}>
+              <Text style={tw`text-red-500 text-center mb-2`}>{errorMsg}</Text>
+              <TouchableOpacity
+                style={tw`mt-2 bg-primary px-3 py-1 rounded`}
+                onPress={handleRetry}
+              >
+                <Text style={tw`text-white`}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : details ? (
+            // 详情内容
             <>
               {/* 联系信息 */}
               <Text style={tw`text-base font-bold mb-2 ${textColor}`}>Contact Info</Text>
               <View style={tw`${contactBgColor} p-3 rounded-lg mb-4`}>
-                {displayDetails.contactInfo.address && (
+                {details.contactInfo?.address && (
                   <Text style={tw`text-sm ${secondaryTextColor} mb-1`}>
                     <Text style={tw`font-medium ${textColor}`}>Address: </Text>
-                    {displayDetails.contactInfo.address}
+                    {details.contactInfo.address}
                   </Text>
                 )}
-                {displayDetails.contactInfo.email && (
+                {details.contactInfo?.email && (
                   <Text style={tw`text-sm ${secondaryTextColor} mb-1`}>
                     <Text style={tw`font-medium ${textColor}`}>Email: </Text>
-                    {displayDetails.contactInfo.email}
+                    {details.contactInfo.email}
                   </Text>
                 )}
-                {displayDetails.contactInfo.phone && (
+                {details.contactInfo?.phone && (
                   <Text style={tw`text-sm ${secondaryTextColor}`}>
                     <Text style={tw`font-medium ${textColor}`}>Phone: </Text>
-                    {displayDetails.contactInfo.phone}
+                    {details.contactInfo.phone}
                   </Text>
                 )}
-                {displayDetails.contactInfo.fax && (
-                  <Text style={tw`text-sm ${secondaryTextColor}`}>
-                    <Text style={tw`font-medium ${textColor}`}>Fax: </Text>
-                    {displayDetails.contactInfo.fax}
-                  </Text>
+
+                {(!details.contactInfo?.address && !details.contactInfo?.email && !details.contactInfo?.phone) && (
+                  <Text style={tw`text-sm ${secondaryTextColor} italic`}>No contact information available</Text>
                 )}
               </View>
 
               {/* 社交媒体 */}
-              {displayDetails.socialMedia && displayDetails.socialMedia.length > 0 && (
+              {details.socialMedia && details.socialMedia.length > 0 && (
                 <>
                   <Text style={tw`text-base font-bold mb-2 ${textColor}`}>Social Media</Text>
                   <View style={tw`flex-row flex-wrap`}>
-                    {displayDetails.socialMedia.map((media, index) => (
+                    {details.socialMedia.map((media, index) => (
                       <TouchableOpacity
                         key={index}
-                        onPress={() => handleSocialMediaPress(media.url)}
+                        onPress={() => handleLinkPress(media.type, media.url)}
                         style={tw`mr-4 mb-2 items-center`}
                       >
                         <Ionicons
@@ -239,7 +247,10 @@ const ClubCard = ({ club }) => {
                             media.type === 'website' ? 'globe-outline' :
                               media.type === 'instagram' ? 'logo-instagram' :
                                 media.type === 'facebook' ? 'logo-facebook' :
-                                  media.type === 'twitter' ? 'logo-twitter' : 'link-outline'
+                                  media.type === 'linkedin' ? 'logo-linkedin' :
+                                    media.type === 'youtube' ? 'logo-youtube' :
+                                      media.type === 'twitter' ? 'logo-twitter' :
+                                        'link-outline'
                           }
                           size={24}
                           color={theme.colors.primary}
@@ -252,10 +263,52 @@ const ClubCard = ({ club }) => {
                   </View>
                 </>
               )}
+
+              {/* 额外信息 */}
+              {details.additionalInfo && (
+                Object.values(details.additionalInfo).some(val => val) && (
+                  <>
+                    <Text style={tw`text-base font-bold mb-2 mt-4 ${textColor}`}>Additional Info</Text>
+                    <View style={tw`${contactBgColor} p-3 rounded-lg`}>
+                      {details.additionalInfo.clubLocation && (
+                        <Text style={tw`text-sm ${secondaryTextColor} mb-1`}>
+                          <Text style={tw`font-medium ${textColor}`}>Club Location: </Text>
+                          {details.additionalInfo.clubLocation}
+                        </Text>
+                      )}
+                      {details.additionalInfo.meetingLocation && (
+                        <Text style={tw`text-sm ${secondaryTextColor} mb-1`}>
+                          <Text style={tw`font-medium ${textColor}`}>Meeting Location: </Text>
+                          {details.additionalInfo.meetingLocation}
+                        </Text>
+                      )}
+                      {details.additionalInfo.meetingTime && (
+                        <Text style={tw`text-sm ${secondaryTextColor} mb-1`}>
+                          <Text style={tw`font-medium ${textColor}`}>Meeting Time: </Text>
+                          {details.additionalInfo.meetingTime}
+                        </Text>
+                      )}
+                      {details.additionalInfo.meetingFrequency && (
+                        <Text style={tw`text-sm ${secondaryTextColor}`}>
+                          <Text style={tw`font-medium ${textColor}`}>Meeting Frequency: </Text>
+                          {details.additionalInfo.meetingFrequency}
+                        </Text>
+                      )}
+                    </View>
+                  </>
+                )
+              )}
             </>
           ) : (
+            // 无数据状态
             <View style={tw`items-center py-4`}>
               <Text style={tw`${secondaryTextColor}`}>No details available</Text>
+              <TouchableOpacity
+                style={tw`mt-2 bg-primary px-3 py-1 rounded`}
+                onPress={handleRetry}
+              >
+                <Text style={tw`text-white`}>Load Details</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
