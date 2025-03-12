@@ -4,7 +4,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import HomeScreen from './HomeScreen';
 import ClubListScreen from './ClubListScreen';
-import RSSScreen from './RSSScreen';
 import EventsScreen from './EventsScreen';
 import { useTheme } from '../../App';
 
@@ -33,6 +32,8 @@ const MainScreen = () => {
               iconName = focused ? 'people' : 'people-outline';
             } else if (route.name === 'Newsletter') {
               iconName = focused ? 'newspaper' : 'newspaper-outline';
+            } else if (route.name === 'Events') {
+              iconName = focused ? 'calendar' : 'calendar-outline';
             }
 
             return <Ionicons name={iconName} size={size} color={color} />;
@@ -41,7 +42,6 @@ const MainScreen = () => {
        id="0">
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Clubs" component={ClubListScreen} />
-        <Tab.Screen name="Newsletter" component={RSSScreen} />
         <Tab.Screen name="Events" component={EventsScreen} />
       </Tab.Navigator>
     </SafeAreaProvider>

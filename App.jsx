@@ -3,14 +3,14 @@ import { useColorScheme, StatusBar, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import MainScreen from './src/screens/MainScreen';
-import RSSDetailScreen from './src/screens/RSSDetailScreen';
 import EventDetailScreen from './src/screens/EventDetailScreen';
 
 export const ThemeContext = createContext(undefined);
-
 export const useTheme = () => useContext(ThemeContext);
 
 const Stack = createNativeStackNavigator();
+
+console.log('App: App component is rendering');
 
 const App = () => {
   const colorScheme = useColorScheme();
@@ -40,16 +40,11 @@ const App = () => {
               headerShown: false,
               contentStyle: { backgroundColor: theme.colors.background },
             }}
-           id="0">
+          >
             <Stack.Screen
               name="Main"
               component={MainScreen}
               options={{ title: 'Rally Nexus' }}
-            />
-            <Stack.Screen
-              name="RSSDetail"
-              component={RSSDetailScreen}
-              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="EventDetail"

@@ -47,22 +47,6 @@ const HomeScreen = () => {
 
           <TouchableOpacity
             style={tw`mb-4 p-5 rounded-xl ${cardBg} shadow-md`}
-            onPress={() => navigateToScreen('Newsletter')}
-          >
-            <View style={tw`flex-row items-center`}>
-              <View style={tw`bg-green-500 p-3 rounded-lg mr-4`}>
-                <Ionicons name="newspaper" size={24} color="white" />
-              </View>
-              <View style={tw`flex-1`}>
-                <Text style={tw`text-lg font-bold ${textColor}`}>Newsletter</Text>
-                <Text style={tw`${secondaryTextColor}`}>Stay updated with latest campus news</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={24} color={theme.colors.secondaryText} />
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={tw`mb-4 p-5 rounded-xl ${cardBg} shadow-md`}
             onPress={() => navigateToScreen('Events')}
           >
             <View style={tw`flex-row items-center`}>
