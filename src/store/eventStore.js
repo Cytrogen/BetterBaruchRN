@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { fetchSchoolEvents } from '../services/api';
+import { fetchAllEvents } from '../services/api';
 
 const useEventStore = create((set, get) => ({
   events: [],
@@ -13,7 +13,7 @@ const useEventStore = create((set, get) => ({
       console.log('事件Store: 开始加载学校事件');
       set({ loading: true, error: null });
 
-      const eventsData = await fetchSchoolEvents();
+      const eventsData = await fetchAllEvents();
       console.log('事件Store: 成功获取事件数据，数量:', eventsData.length);
 
       set({ events: eventsData, loading: false });
