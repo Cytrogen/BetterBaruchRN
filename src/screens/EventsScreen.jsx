@@ -50,16 +50,6 @@ const EventsScreen = () => {
     setFilteredEvents(filtered);
   }, [events, searchQuery]);
 
-  const renderFooter = () => {
-    if (!loading) { return null; }
-
-    return (
-      <View style={tw`py-4 items-center`}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
-  };
-
   // 处理事件点击
   const handleEventPress = (event) => {
     setSelectedEvent(event);
@@ -153,7 +143,6 @@ const EventsScreen = () => {
           renderItem={renderEventCard}
           keyExtractor={(item, index) => item.id || item.guid || `event-${index}`}
           contentContainerStyle={tw`px-4 pb-6`}
-          ListFooterComponent={renderFooter}
           refreshControl={
             <RefreshControl
               refreshing={loading && events.length === 0}

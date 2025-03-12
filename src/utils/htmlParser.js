@@ -62,56 +62,6 @@ export const extractLinksFromHtml = (html) => {
   return links;
 };
 
-export const parseHtmlDescription = (html, textColor) => {
-  if (!html) { return null; }
-
-  // 替换<br>标签为换行
-  let formattedText = html.replace(/<br\s*\/?>/gi, '\n')
-    // 段落之间添加双换行
-    .replace(/<\/p>\s*<p>/gi, '\n\n')
-    // 把-列表项改为•
-    .replace(/-\s+/g, '• ');
-
-  // 移除HTML标签，保留链接的特殊标记以便后续处理
-  // 首先标记所有链接
-  const markedHtml = formattedText.replace(/<a[^>]*href=['"]([^'"]+)['"][^>]*>([\s\S]*?)<\/a>/gi,
-    (match, url, text) => {
-      // 用特殊标记替换链接，以便在移除其他HTML标签后仍能识别
-      return `[[LINK_START:${url}]]${text}[[LINK_END]]`;
-    }
-  );
-
-  // 移除其他HTML标签
-  let textWithMarkers = markedHtml.replace(/<[^>]+>/g, '');
-
-  // 处理纯文本URL
-  const urlRegex = /\b(https?:\/\/[^\s]+)|(www\.[^\s]+\.[^\s]+)/gi;
-
-  textWithMarkers = textWithMarkers.replace(urlRegex, (match) => {
-    let url = match;
-    // 确保URL有http/https前缀
-    if (url.startsWith('www.')) {
-      url = 'https://' + url;
-    }
-    // 去除URL末尾的标点符号
-    url = url.replace(/[.,;:!?)]+$/, '');
-
-    // 如果URL已经在标记内，不要再次标记
-    if (textWithMarkers.includes(`[[LINK_START:${url}]]`)) {
-      return match;
-    }
-
-    return `[[LINK_START:${url}]]${match}[[LINK_END]]`;
-  });
-
-  return textWithMarkers
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, '&');
-};
-
 export const createStyledTextWithLinks = (parsedText, textStyle, linkStyle, onLinkPress) => {
   if (!parsedText) { return null; }
 
