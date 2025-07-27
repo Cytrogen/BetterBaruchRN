@@ -1,4 +1,4 @@
-package com.mybaruchapp
+package com.rallynexus
 
 import android.app.Application
 import com.facebook.react.PackageList

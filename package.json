@@ -1,5 +1,6 @@
 {
-  "name": "rally-nexus",
+  "name": "rallynexus",
+  "displayName": "Rally Nexus",
   "version": "0.0.2",
   "private": true,
   "scripts": {

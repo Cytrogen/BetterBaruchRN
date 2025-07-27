@@ -2,7 +2,7 @@ import axios from 'axios';
 import getEnvVars from '../config/env';
 import { apiLoadingState } from '../components/ApiLoadingIndicator';
 
-const { apiUrl: API_BASE_URL } = getEnvVars();
+const { apiUrl: API_BASE_URL, apiKey: API_KEY } = getEnvVars();
 console.log(`API Base URL: ${API_BASE_URL}`);
 const DEBOUNCE_TIME = 300;
 const pendingRequests = new Map();
@@ -17,6 +17,7 @@ const apiClient = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
+    'X-API-Key': API_KEY,
   },
 });
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import tw from '../styles/tailwind';
-import { parseHtmlDescription, createStyledTextWithLinks } from '../utils/htmlParser';
+import { createStyledTextWithLinks } from '../utils/htmlParser';
 
 const ClickableDescription = ({
                                 html,

@@ -1,12 +1,15 @@
 const ENV = {
   dev: {
     apiUrl: process.env.DEV_URL,
+    apiKey: process.env.DEV_API_KEY,
   },
   staging: {
     apiUrl: process.env.STAGING_URL,
+    apiKey: process.env.STAGING_API_KEY,
   },
   prod: {
     apiUrl: process.env.PROD_URL,
+    apiKey: process.env.PROD_API_KEY,
   },
 };
 
